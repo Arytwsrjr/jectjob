@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "176425288",
+    "project_id": "authenapp-6a863",
+    "storage_bucket": "authenapp-6a863.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:176425288:android:315170e3fb4ba020fe4b7d",
+        "android_client_info": {
+          "package_name": "com.example.planner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfGgnArLVO9BTue0JPmET3pHxkB-ZDKDY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
