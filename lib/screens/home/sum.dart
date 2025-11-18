@@ -32,7 +32,7 @@ class Sumerize extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 40),
-          
+
           // แถบ progress bar
           const Text(
             'Task Completion Overview',
