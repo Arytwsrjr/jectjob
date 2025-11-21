@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:planner/screens/home/login.dart';
 import 'package:planner/screens/widget/piechart.dart';
 import 'package:planner/screens/widget/taskbar.dart';
 
@@ -43,6 +44,27 @@ class Sumerize extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           TaskProgressBar(),
+
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (context) => Login()));
+            },
+            child: Container(
+              height: 50,
+              width: MediaQuery.of(context).size.width,
+              decoration: BoxDecoration(
+                  color: Colors.amber[100],
+                  borderRadius: BorderRadius.circular(30)),
+              margin: EdgeInsets.all(20),
+              child: Center(
+                child: Text(
+                  'Logout',
+                  style: TextStyle(color: Colors.black, fontSize: 24),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

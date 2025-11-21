@@ -2,13 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-class Coding extends StatefulWidget {
-  const Coding({super.key});
+class Reading extends StatefulWidget {
+  const Reading({super.key});
   @override
-  State<Coding> createState() => _CodingState();
+  State<Reading> createState() => _ReadingState();
 }
 
-class _CodingState extends State<Coding> {
+class _ReadingState extends State<Reading> {
   // --- ส่วนจัดการสถานะของ Timer ---
   int _initialMinutes = 25;
   late Duration _totalDuration;
@@ -83,7 +83,7 @@ class _CodingState extends State<Coding> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 247, 226, 162),
+      backgroundColor: const Color.fromARGB(255, 166, 212, 237),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -98,7 +98,7 @@ class _CodingState extends State<Coding> {
               ),
               SizedBox(height: 20),
               Text(
-                'Dive deep,\nstay focused!',
+                'Welcom for reading!',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 32,
@@ -155,7 +155,7 @@ class _CodingState extends State<Coding> {
           mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
-              'Coding',
+              'Reading',
               style: TextStyle(
                 fontSize: 48,
                 fontWeight: FontWeight.bold,

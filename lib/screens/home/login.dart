@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:planner/screens/home/ForgotPassword.dart';
+import 'package:planner/screens/home/home.dart';
 import 'package:planner/screens/home/signup.dart';
+import 'package:planner/service/auth.dart';
 
 class Login extends StatelessWidget {
   const Login({super.key});
@@ -63,6 +66,7 @@ class Login extends StatelessWidget {
                 border: Border.all(color: Colors.black),
                 borderRadius: BorderRadius.circular(30)),
             child: TextField(
+              obscureText: true,
               decoration: InputDecoration(border: InputBorder.none),
             ),
           ),
@@ -74,24 +78,38 @@ class Login extends StatelessWidget {
             children: [
               Padding(
                 padding: EdgeInsets.only(right: 30.0),
-                child: Text(
-                  'Forget Password ?',
-                  style: TextStyle(color: Colors.black),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => Forgotpassword()));
+                  },
+                  child: Text(
+                    'Forget Password ?',
+                    style: TextStyle(color: Colors.black),
+                  ),
                 ),
               ),
             ],
           ),
-          Container(
-            height: 50,
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(
-                color: Colors.amber[100],
-                borderRadius: BorderRadius.circular(30)),
-            margin: EdgeInsets.all(20),
-            child: Center(
-              child: Text(
-                'Sign in',
-                style: TextStyle(color: Colors.black, fontSize: 24),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(context,
+                  MaterialPageRoute(builder: (context) => MyHomePage()));
+            },
+            child: Container(
+              height: 50,
+              width: MediaQuery.of(context).size.width,
+              decoration: BoxDecoration(
+                  color: Colors.amber[100],
+                  borderRadius: BorderRadius.circular(30)),
+              margin: EdgeInsets.all(20),
+              child: Center(
+                child: Text(
+                  'Sign in',
+                  style: TextStyle(color: Colors.black, fontSize: 24),
+                ),
               ),
             ),
           ),
@@ -101,52 +119,64 @@ class Login extends StatelessWidget {
               style: TextStyle(color: Colors.black, fontSize: 24),
             ),
           ),
-          Container(
-            height: 50,
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(
-                color: Colors.green[100],
-                borderRadius: BorderRadius.circular(30)),
-            margin: EdgeInsets.all(20),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Image.asset(
-                '/Users/_arytwsrjr/jecteeraoruk/planner/assets/image/logo_16509564.png',
-                height: 50,
-                width: 50,
-                fit: BoxFit.cover,
-              ),
-              SizedBox(
-                height: 20,
-              ),
-              Text(
-                'Login with Google',
-                style: TextStyle(fontSize: 24),
-              ),
-            ]),
+          GestureDetector(
+            onTap: () {
+              AuthMethod().signInWithGoogle(context);
+            },
+            child: Container(
+              height: 50,
+              width: MediaQuery.of(context).size.width,
+              decoration: BoxDecoration(
+                  color: Colors.green[100],
+                  borderRadius: BorderRadius.circular(30)),
+              margin: EdgeInsets.all(20),
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Image.asset(
+                  '/Users/_arytwsrjr/jecteeraoruk/planner/assets/image/logo_16509564.png',
+                  height: 50,
+                  width: 50,
+                  fit: BoxFit.cover,
+                ),
+                SizedBox(
+                  height: 20,
+                ),
+                Text(
+                  'Login with Google',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ]),
+            ),
           ),
-          Container(
-            height: 60,
-            width: MediaQuery.of(context).size.width,
-            decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(30)),
-            margin: EdgeInsets.all(20),
-            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Image.asset(
-                'assets/image/apple_15785097.png',
-                height: 40,
-                width: 40,
-                fit: BoxFit.cover,
-              ),
-              SizedBox(
-                height: 20,
-              ),
-              Padding(padding: EdgeInsets.only(left: 10)),
-              Text(
-                'Login with apple',
-                style: TextStyle(fontSize: 24),
-              ),
-            ]),
+          GestureDetector(
+            onTap: () {
+              AuthMethod().signInWithApple();
+            },
+            child: Container(
+              height: 60,
+              width: MediaQuery.of(context).size.width,
+              decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(30)),
+              margin: EdgeInsets.all(20),
+              child:
+                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Image.asset(
+                  'assets/image/apple_15785097.png',
+                  height: 40,
+                  width: 40,
+                  fit: BoxFit.cover,
+                ),
+                SizedBox(
+                  height: 20,
+                ),
+                Padding(padding: EdgeInsets.only(left: 10)),
+                Text(
+                  'Login with apple',
+                  style: TextStyle(fontSize: 24),
+                ),
+              ]),
+            ),
           ),
           Center(
               child: Text(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:planner/screens/home/coding.dart';
+import 'package:planner/screens/home/reading.dart';
 
 // --- เราจะเปลี่ยนชื่อ Class จาก Focus เป็น FocusPage ---
 // --- เพื่อหลีกเลี่ยงการซ้ำซ้อนกับ Class ชื่อ Focus ที่มีอยู่แล้วใน Flutter ---
@@ -8,16 +10,16 @@ class FocusPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.yellow,
-        elevation: 0,
-        title: Text('Focus Mode'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {},
-        ),
-      ),
+      //appBar: AppBar(
+      // backgroundColor: Colors.yellow,
+      //  elevation: 0,
+      // title: Text('Focus Mode'),
+      //  centerTitle: true,
+      //  leading: IconButton(
+      //   icon: const Icon(Icons.arrow_back),
+      //   onPressed: () {},
+      // ),
+      //  ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +40,7 @@ class FocusPage extends StatelessWidget {
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 15),
-                  _buildActivitiesSection(),
+                  _buildActivitiesSection(context),
                   const SizedBox(height: 30),
                   const Text(
                     'Recent',
@@ -119,17 +121,35 @@ class FocusPage extends StatelessWidget {
   //}
 
   // Widget สำหรับสร้างส่วน "Activities" ที่เป็นแนวนอน
-  Widget _buildActivitiesSection() {
+  Widget _buildActivitiesSection(BuildContext context) {
     return SizedBox(
       height: 150,
       child: ListView(
         scrollDirection: Axis.horizontal,
         children: [
-          _activityCard(
-              '💻', 'Coding', '2.5 hrs', 'ALL TIME', const Color(0xFFFDEBB9)),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Coding(),
+                  ));
+            },
+            child: _activityCard(
+                '💻', 'Coding', '2.5 hrs', 'ALL TIME', const Color(0xFFFDEBB9)),
+          ),
           const SizedBox(width: 15),
-          _activityCard(
-              '📖', 'Reading', '3 hrs', 'ALL TIME', const Color(0xFF6DD5FA)),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => Reading(),
+                  ));
+            },
+            child: _activityCard(
+                '📖', 'Reading', '3 hrs', 'ALL TIME', const Color(0xFF6DD5FA)),
+          ),
           const SizedBox(width: 15),
           _activityCard(
               '🛏️', 'Sleeping', '8 hrs', 'ALL TIME', const Color(0xFFF7C5CC)),
