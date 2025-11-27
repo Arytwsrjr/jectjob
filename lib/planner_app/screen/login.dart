@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:planner/screens/home/ForgotPassword.dart';
-import 'package:planner/screens/home/home.dart';
-import 'package:planner/screens/home/signup.dart';
+import 'package:planner/planner_app/screen/ForgotPassword.dart';
+import 'package:planner/planner_app/screen/home.dart';
+import 'package:planner/planner_app/screen/signup.dart';
 import 'package:planner/service/auth.dart';
 
 class Login extends StatelessWidget {
@@ -148,35 +148,33 @@ class Login extends StatelessWidget {
               ]),
             ),
           ),
-          GestureDetector(
-            onTap: () {
+
+          /*onTap: () {
               AuthMethod().signInWithApple();
-            },
-            child: Container(
-              height: 60,
-              width: MediaQuery.of(context).size.width,
-              decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(30)),
-              margin: EdgeInsets.all(20),
-              child:
-                  Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Image.asset(
-                  'assets/image/apple_15785097.png',
-                  height: 40,
-                  width: 40,
-                  fit: BoxFit.cover,
-                ),
-                SizedBox(
-                  height: 20,
-                ),
-                Padding(padding: EdgeInsets.only(left: 10)),
-                Text(
-                  'Login with apple',
-                  style: TextStyle(fontSize: 24),
-                ),
-              ]),
-            ),
+            },*/
+          Container(
+            height: 60,
+            width: MediaQuery.of(context).size.width,
+            decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(30)),
+            margin: EdgeInsets.all(20),
+            child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Image.asset(
+                'assets/image/apple_15785097.png',
+                height: 40,
+                width: 40,
+                fit: BoxFit.cover,
+              ),
+              SizedBox(
+                height: 20,
+              ),
+              Padding(padding: EdgeInsets.only(left: 10)),
+              Text(
+                'Login with apple',
+                style: TextStyle(fontSize: 24),
+              ),
+            ]),
           ),
           Center(
               child: Text(

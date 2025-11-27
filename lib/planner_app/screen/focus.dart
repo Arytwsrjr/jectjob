@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:planner/screens/home/coding.dart';
-import 'package:planner/screens/home/reading.dart';
+import 'package:planner/planner_app/screen/coding.dart';
+import 'package:planner/planner_app/screen/reading.dart';
 
 // --- เราจะเปลี่ยนชื่อ Class จาก Focus เป็น FocusPage ---
 // --- เพื่อหลีกเลี่ยงการซ้ำซ้อนกับ Class ชื่อ Focus ที่มีอยู่แล้วใน Flutter ---

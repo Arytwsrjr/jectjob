@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:planner/screens/home/login.dart';
+import 'package:planner/planner_app/screen/login.dart';
 
 class Forgotpassword extends StatefulWidget {
   const Forgotpassword({super.key});
@@ -26,7 +26,7 @@ class _ForgotpasswordState extends State<Forgotpassword> {
               style: TextStyle(fontSize: 18.0))));
 
       Navigator.push(context, MaterialPageRoute(builder: (context) => Login()));
-      
+
     } on FirebaseAuthException catch (e) {
       if (e.code == "user-not-found") {
         ScaffoldMessenger.of(context).showSnackBar(

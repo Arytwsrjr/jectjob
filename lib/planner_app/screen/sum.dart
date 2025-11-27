@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:planner/screens/home/login.dart';
-import 'package:planner/screens/widget/piechart.dart';
-import 'package:planner/screens/widget/taskbar.dart';
+import 'package:planner/planner_app/screen/login.dart';
+import 'package:planner/planner_app/widget/piechart.dart';
+import 'package:planner/planner_app/widget/taskbar.dart';
 
 class Sumerize extends StatelessWidget {
   const Sumerize({super.key});

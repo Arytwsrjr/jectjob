@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:planner/screens/home/focus.dart';
-import 'package:planner/screens/home/sum.dart';
+import 'package:planner/planner_app/screen/focus.dart';
+import 'package:planner/planner_app/screen/sum.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../details/event.dart'; // หรือ 'package:planner/screens/details/event.dart'

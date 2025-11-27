@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/details/detail.dart';
+import 'planner_app/details/detail.dart';
 
 Future<Task?> showAddTaskDialog(BuildContext context) async {
   TextEditingController titleController = TextEditingController();
