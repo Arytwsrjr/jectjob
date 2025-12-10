@@ -2,7 +2,8 @@
 // ignore: depend_on_referenced_packages
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:planner/planner_app/screen/login.dart';
+import 'package:planner/planner_app/screen/home.dart';
+//import 'package:planner/planner_app/screen/login.dart';
 
 //import 'package:planner/screens/home/login.dart';
 //import 'package:planner/screens/home/signup.dart';
@@ -23,7 +24,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       title: 'Planner App',
-      home: Login(),
+      home: MyHomePage(),
     );
   }
 }

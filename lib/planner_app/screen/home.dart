@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:planner/planner_app/screen/focus.dart';
-import 'package:planner/planner_app/screen/sum.dart';
+import 'package:planner/planner_app/screen/eventpage.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../details/event.dart'; // หรือ 'package:planner/screens/details/event.dart'
 
-class MyHomePage extends StatefulWidget {
+/*class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key});
 
   @override
@@ -339,6 +338,158 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}*/
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  CalendarFormat _calendarFormat = CalendarFormat.month;
+  DateTime _focusedDay = DateTime.now();
+  DateTime? _selectedDay;
+
+  Map<DateTime, List<Event>> _events = {};
+
+  List<Event> _getEventsDay(DateTime day) {
+    final normalized = DateTime.utc(day.year, day.month, day.day);
+    return _events[normalized] ?? [];
+  }
+
+  /// ✅ ย้ายฟังก์ชันลบเข้ามาไว้ใน class
+  void _deleteEvent(Event event) {
+    final normalizedDay = DateTime.utc(
+      _selectedDay!.year,
+      _selectedDay!.month,
+      _selectedDay!.day,
+    );
+
+    setState(() {
+      _events[normalizedDay]!.remove(event);
+
+      // ถ้าไม่มี event แล้ว ลบ key ทิ้งเลย
+      if (_events[normalizedDay]!.isEmpty) {
+        _events.remove(normalizedDay);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Calendar Planner"),
+        backgroundColor: Colors.blue,
+      ),
+      body: Column(
+        children: [
+          TableCalendar(
+            firstDay: DateTime.utc(2024, 1, 1),
+            lastDay: DateTime.utc(2100, 12, 31),
+            focusedDay: _focusedDay,
+            selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+            calendarFormat: _calendarFormat,
+            eventLoader: _getEventsDay,
+            onDaySelected: (selectedDay, focusedDay) {
+              setState(() {
+                _selectedDay = selectedDay;
+                _focusedDay = focusedDay;
+              });
+            },
+            onFormatChanged: (format) {
+              setState(() => _calendarFormat = format);
+            },
+            onPageChanged: (focusedDay) {
+              _focusedDay = focusedDay;
+            },
+          ),
+          const SizedBox(height: 10),
+          Expanded(
+            child: _selectedDay == null
+                ? const Center(child: Text("Select a date"))
+                : ListView.builder(
+                    itemCount: _getEventsDay(_selectedDay!).length,
+                    itemBuilder: (context, index) {
+                      final event = _getEventsDay(_selectedDay!)[index];
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 6.0,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey.shade300),
+                          borderRadius: BorderRadius.circular(12.0),
+                        ),
+                        child: ListTile(
+                          leading: Text(
+                            "${event.startTime.format(context)}\n"
+                            "${event.endTime.format(context)}",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            textAlign: TextAlign.center,
+                          ),
+                          title: Text(event.title),
+
+                          /// ✅ ปุ่มลบ event
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () {
+                              _deleteEvent(event);
+                            },
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          if (_selectedDay == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Please select a day first")),
+            );
+            return;
+          }
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => AddEventPage(
+                selectedDate: _selectedDay!,
+              ),
+            ),
+          ).then((newEvent) {
+            if (newEvent != null) {
+              final normalizedDay = DateTime.utc(
+                _selectedDay!.year,
+                _selectedDay!.month,
+                _selectedDay!.day,
+              );
+
+              setState(() {
+                _events[normalizedDay] ??= [];
+                _events[normalizedDay]!.add(newEvent);
+
+                _events[normalizedDay]!.sort((a, b) {
+                  final aDT =
+                      DateTime(0, 0, 0, a.startTime.hour, a.startTime.minute);
+                  final bDT =
+                      DateTime(0, 0, 0, b.startTime.hour, b.startTime.minute);
+                  return aDT.compareTo(bDT);
+                });
+              });
+            }
+          });
+        },
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.add),
       ),
     );
   }

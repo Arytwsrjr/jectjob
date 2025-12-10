@@ -4,9 +4,15 @@ import 'package:planner/planner_app/screen/reading.dart';
 
 // --- เราจะเปลี่ยนชื่อ Class จาก Focus เป็น FocusPage ---
 // --- เพื่อหลีกเลี่ยงการซ้ำซ้อนกับ Class ชื่อ Focus ที่มีอยู่แล้วใน Flutter ---
-class FocusPage extends StatelessWidget {
+class FocusPage extends StatefulWidget {
   const FocusPage({super.key});
 
+  @override
+  State<FocusPage> createState() => _FocusPageState();
+}
+
+class _FocusPageState extends State<FocusPage>{
+  //List<Map<String,dynamic>> recentList = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,6 +153,17 @@ class FocusPage extends StatelessWidget {
                     builder: (context) => Reading(),
                   ));
             },
+            /*onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => Coding()),
+              );
+              if (result != null) {
+                setState(() {
+                  recentList.insert(0, result);
+                });
+              }
+            },*/
             child: _activityCard(
                 '📖', 'Reading', '3 hrs', 'ALL TIME', const Color(0xFF6DD5FA)),
           ),

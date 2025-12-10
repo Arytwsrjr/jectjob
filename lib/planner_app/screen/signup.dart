@@ -11,15 +11,14 @@ class Signup extends StatefulWidget {
 
 class _SignupState extends State<Signup> {
   String email = "", password = "", name = "";
-  TextEditingController namecontroller = new TextEditingController();
-  TextEditingController passwordcontroller = new TextEditingController();
-  TextEditingController emailcontroller = new TextEditingController();
+  TextEditingController namecontroller = TextEditingController();
+  TextEditingController passwordcontroller = TextEditingController();
+  TextEditingController emailcontroller = TextEditingController();
 
   final _formkey = GlobalKey<FormState>();
 
   registration() async {
-    if (password != null &&
-        namecontroller.text != '' &&
+    if (namecontroller.text != '' &&
         emailcontroller.text != '') {
       try {
         UserCredential userCredential = await FirebaseAuth.instance

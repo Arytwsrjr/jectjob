@@ -1,11 +1,13 @@
-import 'package:flutter/material.dart'; // ต้อง import เพื่อใช้ TimeOfDay
+import 'package:flutter/material.dart';
 
 class Event {
   final String title;
-  final TimeOfDay time;
+  final TimeOfDay startTime;
+  final TimeOfDay endTime;
 
-  Event({required this.title, required this.time});
-
-  @override
-  String toString() => title;
+  Event({
+    required this.title,
+    required this.startTime,
+    required this.endTime,
+  });
 }

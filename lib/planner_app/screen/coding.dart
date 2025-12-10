@@ -247,6 +247,18 @@ class _CodingState extends State<Coding> {
         _stopTimer(reset: true);
         if (Navigator.canPop(context)) Navigator.pop(context);
       },
+      /*onPressed: () {
+        _stopTimer(reset: true);
+        final int focusSecond = _totalDuration.inSeconds - _remainingDuration.inSeconds;
+
+        final int finalFocus = (focusSecond >0) ? focusSecond :0;
+
+        final result = {
+          "activity" : "Coding",
+          "focusseconds" : finalFocus,
+          "finishAt" : DateTime.now()
+        };
+        Navigator.pop(context,result);*/
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
