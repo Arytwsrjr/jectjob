@@ -11,21 +11,21 @@ class FocusPage extends StatefulWidget {
   State<FocusPage> createState() => _FocusPageState();
 }
 
-class _FocusPageState extends State<FocusPage>{
+class _FocusPageState extends State<FocusPage> {
   //List<Map<String,dynamic>> recentList = [];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      //appBar: AppBar(
-      // backgroundColor: Colors.yellow,
-      //  elevation: 0,
-      // title: Text('Focus Mode'),
-      //  centerTitle: true,
-      //  leading: IconButton(
-      //   icon: const Icon(Icons.arrow_back),
-      //   onPressed: () {},
-      // ),
-      //  ),
+      appBar: AppBar(
+        backgroundColor: Colors.yellow,
+        elevation: 0,
+        title: Text('Focus Mode'),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {},
+        ),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

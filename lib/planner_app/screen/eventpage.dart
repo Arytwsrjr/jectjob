@@ -78,6 +78,21 @@ class _AddEventPageState extends State<AddEventPage> {
               ),
             ),
             SizedBox(height: 30),
+            Column(
+              children: [
+                TextField(
+                  decoration: InputDecoration(
+                      prefixIcon: Icon(
+                        Icons.location_on_rounded,
+                        color: const Color.fromARGB(255, 60, 73, 44),
+                      ),
+                      hintText: "Location"),
+                )
+              ],
+            ),
+            SizedBox(
+              height: 50,
+            ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -92,6 +107,9 @@ class _AddEventPageState extends State<AddEventPage> {
                   child: const Text("Start"),
                 ),
               ],
+            ),
+            SizedBox(
+              height: 20,
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -132,7 +150,7 @@ class _AddEventPageState extends State<AddEventPage> {
                   Navigator.pop(context, newEvent);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: const Color.fromARGB(255, 168, 209, 243),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 40,
                     vertical: 14,

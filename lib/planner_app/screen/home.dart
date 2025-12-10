@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:planner/planner_app/screen/eventpage.dart';
+import 'package:planner/planner_app/screen/focus.dart';
+import 'package:planner/planner_app/screen/todolist.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../details/event.dart'; // หรือ 'package:planner/screens/details/event.dart'
@@ -350,6 +352,20 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  // ---------- NEW: สำหรับ Bottom Navigation ----------
+  int _selectedIndex = 0;
+
+  // ---------- หน้าที่จะให้เปลี่ยนไปตามไอคอน ----------
+  List<Widget> _pages() => [
+        _buildCalendarPage(), // index 0: Calendar
+        const Center(child: Text("Time Table Page")),
+        const Todolist(),
+        const Center(child: Text("Sleep Time Page")),
+        const FocusPage(),
+        const Center(child: Text("AI Planner Page")),
+      ];
+
+  // ---------- ปฏิทินเดิมของน้อง ----------
   CalendarFormat _calendarFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
@@ -361,7 +377,6 @@ class _MyHomePageState extends State<MyHomePage> {
     return _events[normalized] ?? [];
   }
 
-  /// ✅ ย้ายฟังก์ชันลบเข้ามาไว้ใน class
   void _deleteEvent(Event event) {
     final normalizedDay = DateTime.utc(
       _selectedDay!.year,
@@ -371,16 +386,56 @@ class _MyHomePageState extends State<MyHomePage> {
 
     setState(() {
       _events[normalizedDay]!.remove(event);
-
-      // ถ้าไม่มี event แล้ว ลบ key ทิ้งเลย
       if (_events[normalizedDay]!.isEmpty) {
         _events.remove(normalizedDay);
       }
     });
   }
 
-  @override
-  Widget build(BuildContext context) {
+  // ---------- NEW: Bottom Navigation Bar ----------
+  Widget _buildBottomNavBar() {
+    return BottomNavigationBar(
+      currentIndex: _selectedIndex,
+      onTap: (index) {
+        setState(() {
+          _selectedIndex = index;
+        });
+      },
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: Colors.blue,
+      unselectedItemColor: Colors.grey,
+      showUnselectedLabels: true,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home),
+          label: 'home',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.table_chart_outlined),
+          label: 'time table',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.list_alt_outlined),
+          label: 'to-do list',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.bedtime_outlined),
+          label: 'sleep time',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.mobile_off_sharp),
+          label: 'focus',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.calculate_outlined),
+          label: 'ai planner',
+        ),
+      ],
+    );
+  }
+
+  // ---------- NEW: สร้างหน้า Calendar ให้เรียกใน _pages() ----------
+  Widget _buildCalendarPage() {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Calendar Planner"),
@@ -434,13 +489,9 @@ class _MyHomePageState extends State<MyHomePage> {
                             textAlign: TextAlign.center,
                           ),
                           title: Text(event.title),
-
-                          /// ✅ ปุ่มลบ event
                           trailing: IconButton(
                             icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () {
-                              _deleteEvent(event);
-                            },
+                            onPressed: () => _deleteEvent(event),
                           ),
                         ),
                       );
@@ -488,9 +539,18 @@ class _MyHomePageState extends State<MyHomePage> {
             }
           });
         },
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color.fromARGB(255, 146, 193, 232),
         child: const Icon(Icons.add),
       ),
+    );
+  }
+
+  // ---------- Scaffold หลัก ใช้ _pages()[_selectedIndex] ----------
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages()[_selectedIndex],
+      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 }
