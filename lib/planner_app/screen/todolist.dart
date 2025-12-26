@@ -1,145 +1,194 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // <-- เพิ่ม import นี้สำหรับจัดรูปแบบวันที่
+import 'package:planner/service/firestore.dart';
+import 'package:planner/planner_app/screen/home.dart';
 
-class Todolist extends StatelessWidget {
+
+class Todolist extends StatefulWidget {
   const Todolist({super.key});
 
   @override
+  State<Todolist> createState() => _TodolistState();
+}
+
+class _TodolistState extends State<Todolist> {
+  final FirestoreService _firestoreService = FirestoreService();
+
+  // --- 1. เพิ่ม State สำหรับเก็บเดือนที่กำลังแสดงผล ---
+  late DateTime _displayedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    // กำหนดให้เดือนเริ่มต้นเป็นเดือนปัจจุบัน
+    _displayedMonth = DateTime.now();
+  }
+
+  // --- 2. สร้างฟังก์ชันสำหรับเปลี่ยนเดือน ---
+  void _goToPreviousMonth() {
+    setState(() {
+      _displayedMonth =
+          DateTime(_displayedMonth.year, _displayedMonth.month - 1, 1);
+    });
+  }
+
+  void _goToNextMonth() {
+    setState(() {
+      _displayedMonth =
+          DateTime(_displayedMonth.year, _displayedMonth.month + 1, 1);
+    });
+  }
+
+Future<void> _deleteTodoAndNotifyParent(String todoId) async {
+  try {
+    final deletedEventDay = await _firestoreService.deleteTodo(todoId);
+
+    if (deletedEventDay != null) {
+      pendingRemovedDaysFromTodo.add(DateTime(
+        deletedEventDay.year,
+        deletedEventDay.month,
+        deletedEventDay.day,
+      ));
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Deleted successfully")),
+    );
+    setState(() {});
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Deleted failed: $e")),
+    );
+  }
+}
+
+  @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> todos = [
-      {
-        'title': 'golang assignment',
-        'due': '15 March 2568 (11 days left)',
-        'color': Colors.amber,
-        'isDone': false,
-      },
-      {
-        'title': 'Final Artificial Intelligence',
-        'due': '19 March 2568 (15 days left)',
-        'color': Colors.amber,
-        'isDone': false,
-      },
-      {
-        'title': 'mobileapp assignment',
-        'due': 'Finished on March 13th',
-        'color': Colors.grey.shade300,
-        'isDone': true,
-      },
-      {
-        'title': 'English homework',
-        'due': 'Finished on March 3th',
-        'color': Colors.grey.shade300,
-        'isDone': true,
-      },
-    ];
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.yellow,
-        elevation: 0,
-        title: Text('To-do list'),
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {},
-        ),
-      ),
+  backgroundColor: const Color.fromARGB(255, 244, 227, 137),
+  elevation: 0,
+  title: const Text('To-Do List'),
+  centerTitle: true,
+  automaticallyImplyLeading: false, // ✅ สำคัญ: ไม่ต้องมีปุ่ม back
+),
+
       body: Column(
         children: [
-          // SizedBox(
-          // height: 50,
-          // ),
-          //Padding(
-          //  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-
-          // ),
-          //Text(
-          //  'Todo List',
-          // style: TextStyle(fontSize: 30),
-          //),
-          //SizedBox(
-          // height: 8,
-          //),
-          //Divider(
-          //  thickness: 1,
-          // ),
+          // --- 3. เปลี่ยนส่วนแสดงเดือนให้เป็นแบบไดนามิก ---
           Container(
-            margin: EdgeInsets.symmetric(vertical: 16),
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(color: Colors.pinkAccent),
-            child: Text(
-              'March',
-              style: TextStyle(color: Colors.black),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _goToPreviousMonth,
+                ),
+                Text(
+                  // ใช้ intl เพื่อแสดงชื่อเดือนและปีให้สวยงาม
+                  DateFormat('MMMM yyyy').format(_displayedMonth),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: _goToNextMonth,
+                ),
+              ],
             ),
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Text('Su'),
-              Text('Mo'),
-              Text('Tu'),
-              Text('Wed'),
-              Text('Th'),
-              Text('Fr'),
-              Text('Sat')
-            ],
-          ),
-          SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              for (var day in ['16', '17', '18', '19', '20', '22', '21'])
-                day == '19'
-                    ? Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFF7C97F),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(day,
-                            style:
-                                const TextStyle(fontWeight: FontWeight.bold)),
-                      )
-                    : Text(day),
-            ],
-          ),
-          SizedBox(
-            height: 10,
-          ),
+          const SizedBox(height: 10),
+
+          // --- 4. แก้ไข StreamBuilder ให้ใช้เมธอดใหม่ ---
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: todos.length,
-              itemBuilder: (context, index) {
-                final todo = todos[index];
-                final bool isDone = todo['isDone'];
-                return Container(
-                  margin: const EdgeInsets.symmetric(vertical: 6),
-                  decoration: BoxDecoration(
-                    color: todo['color'],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: ListTile(
-                    leading: isDone
-                        ? const Icon(Icons.check_circle, color: Colors.black)
-                        : const Icon(Icons.circle_outlined,
-                            color: Colors.white),
-                    title: Text(
-                      todo['title'],
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        decoration: isDone
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
-                      ),
+            child: StreamBuilder<QuerySnapshot>(
+              // ใช้ stream ใหม่ที่กรองข้อมูลตามเดือน
+              stream: _firestoreService.getTodosStreamForMonth(_displayedMonth),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                      child: Text('Something went wrong: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(
+                    child: Text(
+                      'ไม่มีกิจกรรมในเดือนนี้',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
                     ),
-                    subtitle: Text(
-                      isDone ? todo['due'] : "Due: ${todo['due']}",
-                      style: TextStyle(
-                        color: isDone ? Colors.black54 : Colors.red.shade700,
-                        fontSize: 13,
+                  );
+                }
+
+                final todos = snapshot.data!.docs;
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: todos.length,
+                  itemBuilder: (context, index) {
+                    final todoDoc = todos[index];
+                    final docID = todoDoc.id;
+                    final todoData = todoDoc.data() as Map<String, dynamic>;
+
+                    final String title = todoData['title'];
+                    final bool isCompleted = todoData['isCompleted'];
+                    // --- 5. ดึงข้อมูล deadline มาใช้ ---
+                    final DateTime deadline =
+                        (todoData['deadline'] as Timestamp).toDate();
+                    final String type = (todoData['type'] ?? 'todo').toString();
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color:
+                            isCompleted ? Colors.grey.shade300 : Colors.amber,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    trailing: const Icon(Icons.delete_outline),
-                  ),
+                      child: ListTile(
+                        onTap: () {
+                          _firestoreService.updateTodoStatus(
+                              docID, !isCompleted);
+                        },
+                        leading: isCompleted
+                            ? const Icon(Icons.check_circle,
+                                color: Colors.black)
+                            : const Icon(Icons.circle_outlined,
+                                color: Colors.white),
+                        title: Text(
+                          title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            decoration: isCompleted
+                                ? TextDecoration.lineThrough
+                                : TextDecoration.none,
+                          ),
+                        ),
+                        
+                        // --- 6. แสดงผล deadline ---
+                        subtitle: Text(
+                          // จัดรูปแบบวันที่ให้สวยงาม
+                          'Deadline: ${DateFormat('d MMMM yyyy').format(deadline)}',
+                          style: TextStyle(
+                            color: isCompleted
+                                ? Colors.black54
+                                : Colors.red.shade700,
+                            fontSize: 13,
+                          ),
+                        ),
+                        trailing: IconButton(
+  icon: const Icon(Icons.delete_outline),
+  onPressed: () => _deleteTodoAndNotifyParent(docID),
+),
+                      ),
+                    );
+                  },
                 );
               },
             ),

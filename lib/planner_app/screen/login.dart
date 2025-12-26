@@ -1,6 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:flutter/material.dart';
 import 'package:planner/planner_app/screen/ForgotPassword.dart';
 import 'package:planner/planner_app/screen/home.dart';
 import 'package:planner/planner_app/screen/signup.dart';
@@ -246,27 +245,6 @@ class _LoginState extends State<Login> {
             ),
 
             // Login with Apple (placeholder)
-            Container(
-              height: 60,
-              width: double.infinity,
-              margin: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(30),
-              ),
-              child: InkWell(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Login with Apple ยังไม่พร้อมใช้งานนะ')),
-                  );
-                },
-                child: const Center(
-                  child:
-                      Text('Login with Apple', style: TextStyle(fontSize: 20)),
-                ),
-              ),
-            ),
 
             const SizedBox(height: 8),
 

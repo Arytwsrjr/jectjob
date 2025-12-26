@@ -1,14 +1,24 @@
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 
-class Coding extends StatefulWidget {
-  const Coding({super.key});
+class Exercise extends StatefulWidget {
+  const Exercise({super.key});
   @override
-  State<Coding> createState() => _CodingState();
+  State<Exercise> createState() => _ExerciseState();
 }
 
-class _CodingState extends State<Coding> {
+class _SongItem{
+  final String name;
+  final String url;
+
+  _SongItem({required this.name, required this.url});
+}
+
+class _ExerciseState extends State<Exercise> {
+  final String _category = "exercise";
   // --- ส่วนจัดการสถานะของ Timer ---
   int _initialMinutes = 25;
   late Duration _totalDuration;
@@ -16,11 +26,24 @@ class _CodingState extends State<Coding> {
   Timer? _timer;
   bool _isRunning = false;
 
+  final CollectionReference _songCollection = FirebaseFirestore.instance.collection('songs');
+  final AudioPlayer _player = AudioPlayer();
+  List<_SongItem>_songs = [];
+
   @override
   void initState() {
     super.initState();
     _totalDuration = Duration(minutes: _initialMinutes);
     _remainingDuration = _totalDuration;
+
+    _loadSongsAndPreparePlaylist();
+  }
+
+  @override
+  void dispose(){
+    _timer?.cancel();
+    _player.dispose();
+    super.dispose();
   }
 
   // --- ฟังก์ชัน Timer ---
@@ -80,59 +103,210 @@ class _CodingState extends State<Coding> {
     });
   }
 
+  // ---------- MUSIC ----------
+  Future<void> _loadSongsAndPreparePlaylist() async {
+    try {
+      final snap =
+          await _songCollection.where('category', isEqualTo: _category).get();
+
+      _songs = snap.docs
+          .map((d) {
+            final data = d.data() as Map<String, dynamic>;
+            return _SongItem(
+              name: (data['name'] ?? 'Unknown').toString(),
+              url: (data['url'] ?? '').toString(),
+            );
+          })
+          .where((s) => s.url.trim().isNotEmpty)
+          .toList();
+
+      if (_songs.isEmpty) {
+        if (mounted) setState(() {});
+        return;
+      }
+
+      final playlist = ConcatenatingAudioSource(
+        children: _songs.map((s) => AudioSource.uri(Uri.parse(s.url))).toList(),
+      );
+
+      await _player.setAudioSource(
+        playlist,
+        initialIndex: 0,
+        initialPosition: Duration.zero,
+      );
+
+      if (mounted) setState(() {});
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {});
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        SnackBar(content: Text("Load songs failed: $e")),
+      );
+    }
+  }
+
+  Future<void> _togglePlayPause() async {
+    if (_songs.isEmpty) return;
+    try {
+      _player.playing ? await _player.pause() : await _player.play();
+    } catch (_) {
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+        const SnackBar(content: Text("Cannot play this song")),
+      );
+    }
+  }
+
+  Future<void> _nextSong() async {
+    if (_songs.isEmpty) return;
+    if (_player.hasNext) {
+      await _player.seekToNext();
+      await _player.play();
+    }
+  }
+
+  Future<void> _prevSong() async {
+    if (_songs.isEmpty) return;
+    if (_player.hasPrevious) {
+      await _player.seekToPrevious();
+      await _player.play();
+    } else {
+      await _player.seek(Duration.zero);
+    }
+  }
+
+  // ---------- MINI PLAYER ----------
+  Widget _buildMiniPlayerBar() {
+    return StreamBuilder<int?>(
+      stream: _player.currentIndexStream,
+      builder: (context, snapIndex) {
+        final idx = snapIndex.data ?? 0;
+
+        final songName =
+            (_songs.isNotEmpty && idx >= 0 && idx < _songs.length)
+                ? _songs[idx].name
+                : "No songs";
+
+        return StreamBuilder<PlayerState>(
+          stream: _player.playerStateStream,
+          builder: (context, snapState) {
+            final playing = snapState.data?.playing ?? false;
+
+            return Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.88),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                    color: Colors.black.withOpacity(0.25),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.music_note, color: Colors.white70, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      songName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _songs.isEmpty ? null : _prevSong,
+                    icon: const Icon(Icons.skip_previous, color: Colors.white),
+                  ),
+                  IconButton(
+                    onPressed: _songs.isEmpty ? null : _togglePlayPause,
+                    icon: Icon(
+                      playing ? Icons.pause_circle : Icons.play_circle,
+                      color: Colors.white,
+                      size: 30,
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _songs.isEmpty ? null : _nextSong,
+                    icon: const Icon(Icons.skip_next, color: Colors.white),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 247, 226, 162),
+
+      // ✅ ใช้ Stack เพื่อให้ mini player ลอยด้านบน
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: IconButton(
-                  icon: const Icon(Icons.music_note, color: Colors.black54),
-                  onPressed: () {},
-                ),
-              ),
-              SizedBox(height: 20),
-              Text(
-                'Dive deep,\nstay focused!',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      blurRadius: 10.0,
-                      color: Colors.black.withOpacity(0.3),
-                      offset: const Offset(2, 2),
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Column(
+                children: [
+                  const SizedBox(height: 70), // ✅ เว้นที่ให้แถบด้านบน
+
+                  Text(
+                    'Welcome for Exercise!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          blurRadius: 10.0,
+                          color: Colors.black.withOpacity(0.3),
+                          offset: const Offset(2, 2),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildGlowEffect(),
+                  const SizedBox(height: 20),
+
+                  _buildTimerControls(),
+                  const SizedBox(height: 20),
+
+                  _buildTimeAdjustButtons(),
+                  const SizedBox(height: 20),
+
+                  _buildDoneButton(),
+                ],
               ),
-              SizedBox(
-                height: 20,
+            ),
+
+            // ✅ แถบเพลงลอยด้านบน (Dynamic Island)
+            Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 8, left: 20, right: 20),
+                child: _buildMiniPlayerBar(),
               ),
-              _buildGlowEffect(),
-              SizedBox(
-                height: 20,
-              ),
-              _buildTimerControls(), // ตัวเลข + Play/Pause/Reset
-              SizedBox(height: 20),
-              _buildTimeAdjustButtons(), // <-- ปุ่มเพิ่ม/ลดเวลา
-              SizedBox(height: 20),
-              _buildDoneButton(),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // --- Glow Effect ---
   Widget _buildGlowEffect() {
     return Stack(
       alignment: Alignment.center,
@@ -162,15 +336,14 @@ class _CodingState extends State<Coding> {
                 color: Colors.black87,
               ),
             ),
-            SizedBox(height: 10),
-            Icon(Icons.laptop_mac, size: 40, color: Colors.grey[800]),
+            const SizedBox(height: 10),
+            Icon(Icons.menu_book, size: 40, color: Colors.grey[800]),
           ],
         ),
       ],
     );
   }
 
-  // --- ปุ่มตัวเลข + Play/Pause/Reset ---
   Widget _buildTimerControls() {
     return Column(
       children: [
@@ -195,19 +368,22 @@ class _CodingState extends State<Coding> {
           children: [
             Container(
               decoration:
-                  BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                  const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
               child: IconButton(
-                  icon: const Icon(Icons.refresh, color: Colors.black54),
-                  iconSize: 30,
-                  onPressed: _resetTimer),
+                icon: const Icon(Icons.refresh, color: Colors.black54),
+                iconSize: 30,
+                onPressed: _resetTimer,
+              ),
             ),
             const SizedBox(width: 40),
             Container(
-              decoration: const BoxDecoration(
-                  shape: BoxShape.circle, color: Colors.white),
+              decoration:
+                  const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
               child: IconButton(
-                icon: Icon(_isRunning ? Icons.pause : Icons.play_arrow,
-                    color: Colors.black87),
+                icon: Icon(
+                  _isRunning ? Icons.pause : Icons.play_arrow,
+                  color: Colors.black87,
+                ),
                 iconSize: 40,
                 onPressed: _toggleTimer,
               ),
@@ -218,29 +394,32 @@ class _CodingState extends State<Coding> {
     );
   }
 
-  // --- ปุ่มเพิ่ม/ลดเวลา ---
   Widget _buildTimeAdjustButtons() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-            icon: const Icon(Icons.remove_circle, color: Colors.red, size: 36),
-            onPressed: _decreaseTime),
+          icon: const Icon(Icons.remove_circle, color: Colors.red, size: 36),
+          onPressed: _decreaseTime,
+        ),
         const SizedBox(width: 20),
-        Text("$_initialMinutes min",
-            style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white)),
+        Text(
+          "$_initialMinutes min",
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         const SizedBox(width: 20),
         IconButton(
-            icon: const Icon(Icons.add_circle, color: Colors.green, size: 36),
-            onPressed: _increaseTime),
+          icon: const Icon(Icons.add_circle, color: Colors.green, size: 36),
+          onPressed: _increaseTime,
+        ),
       ],
     );
   }
 
-  // --- ปุ่ม DONE ---
   Widget _buildDoneButton() {
     return ElevatedButton(
       onPressed: () {
@@ -253,8 +432,10 @@ class _CodingState extends State<Coding> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
         elevation: 5,
       ),
-      child: const Text('DONE',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+      child: const Text(
+        'DONE',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
     );
   }
 }

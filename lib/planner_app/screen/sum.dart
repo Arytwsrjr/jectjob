@@ -47,8 +47,11 @@ class Sumerize extends StatelessWidget {
 
           GestureDetector(
             onTap: () {
-              Navigator.push(
-                  context, MaterialPageRoute(builder: (context) => Login()));
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => Login()),
+                (route) => false,
+              );
             },
             child: Container(
               height: 50,
