@@ -18,7 +18,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
   DateTime _selectedDate = DateTime.now();
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
-  String? _selectedDay;
+  //String? _selectedDay;
 
   String get _formattedDate => DateFormat('EEEE').format(_selectedDate);
 //ถอยกลับมา

@@ -40,20 +40,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   DateTime _dateOnly(DateTime d) => DateTime(d.year, d.month, d.day);
 
-  Map<DateTime, List<Event>> _monthEvents = {};
+  //Map<DateTime, List<Event>> _monthEvents = {};
   Set<DateTime> _cachedDaysWithEvents = {};
 
   // ✅ ADD: เปิดหน้าแก้ไข
   Future<void> _editEvent(Event event) async {
     if (FirebaseAuth.instance.currentUser == null) return;
-    if (event.id == null || event.id!.isEmpty) return;
+    // ignore: unnecessary_null_comparison
+    if (event.id == null || event.id.isEmpty) return;
 
     final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => AddEventPage(
           selectedDate: _selectedDay,
-          eventId: event.id!, // ✅ ส่ง id เข้าไปเพื่อแก้ไข
+          eventId: event.id, // ✅ ส่ง id เข้าไปเพื่อแก้ไข
         ),
       ),
     );
@@ -65,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (FirebaseAuth.instance.currentUser == null) return;
 
     try {
-      await _firestoreService.deleteEvent(event.id!, _selectedDay);
+      await _firestoreService.deleteEvent(event.id, _selectedDay);
 
       final stillHasEvents =
           await _firestoreService.hasEventsOnDay(_selectedDay);

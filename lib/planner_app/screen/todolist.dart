@@ -142,7 +142,7 @@ Future<void> _deleteTodoAndNotifyParent(String todoId) async {
                     // --- 5. ดึงข้อมูล deadline มาใช้ ---
                     final DateTime deadline =
                         (todoData['deadline'] as Timestamp).toDate();
-                    final String type = (todoData['type'] ?? 'todo').toString();
+                    (todoData['type'] ?? 'todo').toString();
 
                     return Container(
                       margin: const EdgeInsets.symmetric(vertical: 6),

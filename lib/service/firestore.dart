@@ -350,7 +350,7 @@ class FirestoreService {
       // ถ้าไม่มี eventDateTs แต่มี eventDateId -> ใช้ eventDateId
       final eventDateId = (data['eventDateId'] as String?)?.trim();
       final dateId = deletedEventDay != null
-          ? _getDateId(deletedEventDay!)
+          ? _getDateId(deletedEventDay)//!
           : (eventDateId?.isNotEmpty == true ? eventDateId! : null);
 
       if (dateId != null) {
@@ -391,7 +391,8 @@ class FirestoreService {
       final days = <DateTime>{};
 
       for (final doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
+        //as Map<String, dynamic>;
         final ts = data['date'] as Timestamp?;
         if (ts == null) continue;
 

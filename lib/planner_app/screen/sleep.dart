@@ -1,8 +1,9 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Sleeping extends StatefulWidget {
   const Sleeping({super.key});
@@ -10,101 +11,352 @@ class Sleeping extends StatefulWidget {
   State<Sleeping> createState() => _SleepingState();
 }
 
-class _SongItem{
+class _SongItem {
   final String name;
   final String url;
-  
   _SongItem({required this.name, required this.url});
 }
 
-class _SleepingState extends State<Sleeping> {
-  final String _category ="sleeping";
+class _SleepingState extends State<Sleeping> with WidgetsBindingObserver {
+  final String _category = "sleeping";
 
-  // --- ส่วนจัดการสถานะของ Timer ---
-  int _initialMinutes = 25;
-  late Duration _totalDuration;
-  late Duration _remainingDuration;
-  Timer? _timer;
+  bool get _canDone {
+    if (_sessionStartAt == null) return false;
+    return _elapsedNow() >= _targetDuration;
+  }
+
+  bool get _canExit => _sessionStartAt == null;
+
+  // ✅ target time (ตั้งไว้) -> นาที
+  int _initialMinutes = 5;
+  Duration get _targetDuration => Duration(seconds: _initialMinutes);
+
+  // ✅ session time (เวลาจริง)
+  DateTime? _sessionStartAt;
+  DateTime? _activeStartAt;
+  Duration _accumulated = Duration.zero;
   bool _isRunning = false;
+  Timer? _ticker;
 
-  final CollectionReference _songCollection = FirebaseFirestore.instance.collection('songs');
+  // ✅ กัน SnackBar เด้งซ้ำ + กันชนตอน dialog เปิด
+  bool _targetNotified = false;
+  bool _dialogOpen = false;
+
+  // 🎵 Firestore + Audio
+  final CollectionReference _songCollection =
+      FirebaseFirestore.instance.collection('songs');
   final AudioPlayer _player = AudioPlayer();
   List<_SongItem> _songs = [];
+
+  // ===== SharedPreferences keys (แยกจาก reading) =====
+  static const _kRunning = 'sleeping_running';
+  static const _kInitialMinutes = 'sleeping_initial_minutes';
+  static const _kSessionStartMs = 'sleeping_session_start_ms';
+  static const _kActiveStartMs = 'sleeping_active_start_ms';
+  static const _kAccumulatedSec = 'sleeping_accumulated_sec';
 
   @override
   void initState() {
     super.initState();
-    _totalDuration = Duration(minutes: _initialMinutes);
-    _remainingDuration = _totalDuration;
-
+    WidgetsBinding.instance.addObserver(this);
     _loadSongsAndPreparePlaylist();
+    _restoreSession();
   }
 
   @override
-  void dispose(){
-    _timer?.cancel();
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _ticker?.cancel();
     _player.dispose();
     super.dispose();
   }
 
-  // --- ฟังก์ชัน Timer ---
+  // ✅ ตอนแอป background/foreground ให้ persist ไว้
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _persistSession();
+    }
+    super.didChangeAppLifecycleState(state);
+  }
+
+  // =========================
+  // REAL TIME CALC
+  // =========================
+  Duration _elapsedNow() {
+    if (_activeStartAt != null && _isRunning) {
+      final now = DateTime.now();
+      return _accumulated + now.difference(_activeStartAt!);
+    }
+    return _accumulated;
+  }
+
+  Duration _remainingNow() => _targetDuration - _elapsedNow();
+
+  String _formatMMSS(Duration d) {
+    final totalSec = d.inSeconds.abs();
+    final m = (totalSec ~/ 60).toString().padLeft(2, '0');
+    final s = (totalSec % 60).toString().padLeft(2, '0');
+    return "$m : $s";
+  }
+
+  String _displayTimerText() {
+    final rem = _remainingNow();
+    if (rem.inSeconds >= 0) return _formatMMSS(rem);
+    return "+ ${_formatMMSS(rem)}";
+  }
+
+  // =========================
+  // TIMER CONTROL (RUN/PAUSE)
+  // =========================
   void _startTimer() {
     if (_isRunning) return;
-    setState(() => _isRunning = true);
 
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_remainingDuration.inSeconds > 0) {
-          _remainingDuration -= const Duration(seconds: 1);
-        } else {
-          _stopTimer(reset: false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Focus session complete! 🎉')),
-          );
-        }
-      });
+    final now = DateTime.now();
+    setState(() {
+      _isRunning = true;
+      _sessionStartAt ??= now;
+      _activeStartAt = now;
     });
+
+    _ticker?.cancel();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+
+      setState(() {});
+
+      // ✅ ถึงเป้าแล้วไม่หยุด แต่แจ้งครั้งเดียว
+      if (!_targetNotified && _remainingNow().inSeconds <= 0 && !_dialogOpen) {
+        _targetNotified = true;
+        ScaffoldMessenger.maybeOf(context)
+          ?..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Target reached! You can keep sleeping 😴'),
+            ),
+          );
+      }
+    });
+
+    _persistSession();
   }
 
-  void _stopTimer({bool reset = false}) {
-    _timer?.cancel();
+  void _pauseTimer() {
+    if (!_isRunning) return;
+
+    final now = DateTime.now();
     setState(() {
       _isRunning = false;
-      if (reset) _remainingDuration = _totalDuration;
+      if (_activeStartAt != null) {
+        _accumulated += now.difference(_activeStartAt!);
+      }
+      _activeStartAt = null;
     });
+
+    _ticker?.cancel();
+    _persistSession();
   }
 
-  void _toggleTimer() => _isRunning ? _stopTimer() : _startTimer();
+  void _toggleTimer() => _isRunning ? _pauseTimer() : _startTimer();
 
-  void _resetTimer() => _stopTimer(reset: true);
-
-  String _formatDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String minutes = twoDigits(duration.inMinutes.remainder(60));
-    String seconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$minutes : $seconds";
-  }
-
-  // --- เพิ่ม/ลดเวลา ---
-  void _increaseTime() {
+  void _resetTimer() {
+    _ticker?.cancel();
     setState(() {
-      _initialMinutes += 5;
-      _totalDuration = Duration(minutes: _initialMinutes);
-      if (!_isRunning) _remainingDuration = _totalDuration;
+      _isRunning = false;
+      _sessionStartAt = null;
+      _activeStartAt = null;
+      _accumulated = Duration.zero;
+      _targetNotified = false;
     });
+    _clearPersisted();
+  }
+
+  void _increaseTime() {
+    setState(() => _initialMinutes += 5);
+    _persistSession();
   }
 
   void _decreaseTime() {
     setState(() {
-      if (_initialMinutes > 1) {
-        _initialMinutes -= 5;
-        _totalDuration = Duration(minutes: _initialMinutes);
-        if (!_isRunning) _remainingDuration = _totalDuration;
-      }
+      if (_initialMinutes > 5) _initialMinutes -= 5;
     });
+    _persistSession();
   }
-  
-   // ---------- MUSIC ----------
+
+  // =========================
+  // DONE -> POPUP -> SAVE
+  // =========================
+Future<void> _onDonePressed() async {
+  if (_sessionStartAt == null) return;
+  if (!_canDone) return;
+
+  if (_isRunning) _pauseTimer();
+
+  final now = DateTime.now();
+  final duration = _elapsedNow();
+
+  try {
+    await _saveSleepSession(
+      startTime: _sessionStartAt!,
+      endTime: now,
+      duration: duration,
+    );
+
+    if (!mounted) return;
+
+    _resetTimer();
+    ScaffoldMessenger.maybeOf(context)
+        ?.showSnackBar(const SnackBar(content: Text("Save Success!")));
+    Navigator.of(context).pop(true);
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+      SnackBar(content: Text("Save failed: $e")),
+    );
+  }
+}
+
+  // ✅ FIX: ใช้ showDialog<String> + rootNavigator และกัน _dialogOpen
+  // Future<String?> _askSubjectPopup() async {
+  //   String subject = '';
+  //   setState(() => _dialogOpen = true);
+
+  //   final result = await showDialog<String>(
+  //     context: context,
+  //     useRootNavigator: true,
+  //     barrierDismissible: false,
+  //     builder: (ctx) {
+  //       return AlertDialog(
+  //         title: const Text("วิชาอะไร?"),
+  //         content: TextField(
+  //           autofocus: true,
+  //           onChanged: (v) => subject = v.trim(),
+  //           decoration: const InputDecoration(
+  //             hintText: "เช่น OS, DB, Math...",
+  //             border: OutlineInputBorder(),
+  //           ),
+  //         ),
+  //         actions: [
+  //           TextButton(
+  //             onPressed: () {
+  //               Navigator.of(ctx, rootNavigator: true).pop(null);
+  //             },
+  //             child: const Text("Cancel"),
+  //           ),
+  //           ElevatedButton(
+  //             onPressed: () {
+  //               if (subject.isEmpty) return;
+  //               Navigator.of(ctx, rootNavigator: true).pop(subject);
+  //             },
+  //             child: const Text("Save"),
+  //           ),
+  //         ],
+  //       );
+  //     },
+  //   );
+
+  //   if (mounted) setState(() => _dialogOpen = false);
+  //   return result;
+  // }
+
+  Future<void> _saveSleepSession({
+    required DateTime startTime,
+    required DateTime endTime,
+    required Duration duration,
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw Exception("User not signed in");
+
+    final ref = FirebaseFirestore.instance
+        .collection('timer')
+        .doc(uid)
+        .collection('sleep_sessions')
+        .doc();
+
+ await ref.set({
+    'category': _category, // "sleeping"
+    'startTime': Timestamp.fromDate(startTime),
+    'endTime': Timestamp.fromDate(endTime),
+    'durationSeconds': duration.inSeconds,
+    'plannedMinutes': _initialMinutes, // หรือเปลี่ยนชื่อเป็น plannedSeconds ถ้าคุณใช้ sec
+    'createdAt': FieldValue.serverTimestamp(),
+  });
+}
+
+  // =========================
+  // PERSIST / RESTORE
+  // =========================
+  Future<void> _persistSession() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_kRunning, _isRunning);
+    await prefs.setInt(_kInitialMinutes, _initialMinutes);
+    await prefs.setInt(_kAccumulatedSec, _accumulated.inSeconds);
+
+    if (_sessionStartAt != null) {
+      await prefs.setInt(_kSessionStartMs, _sessionStartAt!.millisecondsSinceEpoch);
+    } else {
+      await prefs.remove(_kSessionStartMs);
+    }
+
+    if (_activeStartAt != null) {
+      await prefs.setInt(_kActiveStartMs, _activeStartAt!.millisecondsSinceEpoch);
+    } else {
+      await prefs.remove(_kActiveStartMs);
+    }
+  }
+
+  Future<void> _restoreSession() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    final running = prefs.getBool(_kRunning) ?? false;
+    final initMin = prefs.getInt(_kInitialMinutes) ?? 25;
+    final accSec = prefs.getInt(_kAccumulatedSec) ?? 0;
+
+    final startMs = prefs.getInt(_kSessionStartMs);
+    final activeMs = prefs.getInt(_kActiveStartMs);
+
+    setState(() {
+      _initialMinutes = initMin;
+      _accumulated = Duration(seconds: accSec);
+      _sessionStartAt =
+          startMs != null ? DateTime.fromMillisecondsSinceEpoch(startMs) : null;
+      _activeStartAt =
+          activeMs != null ? DateTime.fromMillisecondsSinceEpoch(activeMs) : null;
+      _isRunning = running;
+
+      _targetNotified = (_remainingNow().inSeconds <= 0);
+    });
+
+    if (_isRunning && _activeStartAt != null) {
+      final now = DateTime.now();
+      final extra = now.difference(_activeStartAt!);
+      setState(() {
+        _accumulated += extra;
+        _activeStartAt = now;
+      });
+
+      _ticker?.cancel();
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        setState(() {});
+      });
+    }
+  }
+
+  Future<void> _clearPersisted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_kRunning);
+    await prefs.remove(_kInitialMinutes);
+    await prefs.remove(_kSessionStartMs);
+    await prefs.remove(_kActiveStartMs);
+    await prefs.remove(_kAccumulatedSec);
+  }
+
+  // =========================
+  // MUSIC
+  // =========================
   Future<void> _loadSongsAndPreparePlaylist() async {
     try {
       final snap =
@@ -175,17 +427,15 @@ class _SleepingState extends State<Sleeping> {
     }
   }
 
-  // ---------- MINI PLAYER ----------
   Widget _buildMiniPlayerBar() {
     return StreamBuilder<int?>(
       stream: _player.currentIndexStream,
       builder: (context, snapIndex) {
         final idx = snapIndex.data ?? 0;
 
-        final songName =
-            (_songs.isNotEmpty && idx >= 0 && idx < _songs.length)
-                ? _songs[idx].name
-                : "No songs";
+        final songName = (_songs.isNotEmpty && idx >= 0 && idx < _songs.length)
+            ? _songs[idx].name
+            : "No songs";
 
         return StreamBuilder<PlayerState>(
           stream: _player.playerStateStream,
@@ -246,13 +496,13 @@ class _SleepingState extends State<Sleeping> {
     );
   }
 
-  // ---------- UI ----------
+  // =========================
+  // UI
+  // =========================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 247, 226, 162),
-
-      // ✅ ใช้ Stack เพื่อให้ mini player ลอยด้านบน
       body: SafeArea(
         child: Stack(
           children: [
@@ -260,8 +510,7 @@ class _SleepingState extends State<Sleeping> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Column(
                 children: [
-                  const SizedBox(height: 70), // ✅ เว้นที่ให้แถบด้านบน
-
+                  const SizedBox(height: 60),
                   Text(
                     'Welcome for Sleeping!',
                     textAlign: TextAlign.center,
@@ -278,23 +527,17 @@ class _SleepingState extends State<Sleeping> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-
+                  const SizedBox(height: 15),
                   _buildGlowEffect(),
-                  const SizedBox(height: 20),
-
+                  const SizedBox(height: 15),
                   _buildTimerControls(),
-                  const SizedBox(height: 20),
-
+                  const SizedBox(height: 15),
                   _buildTimeAdjustButtons(),
-                  const SizedBox(height: 20),
-
-                  _buildDoneButton(),
+                  const SizedBox(height: 15),
+                  _buildButtonsRow(),
                 ],
               ),
             ),
-
-            // ✅ แถบเพลงลอยด้านบน (Dynamic Island)
             Align(
               alignment: Alignment.topCenter,
               child: Padding(
@@ -338,7 +581,7 @@ class _SleepingState extends State<Sleeping> {
               ),
             ),
             const SizedBox(height: 10),
-            Icon(Icons.menu_book, size: 40, color: Colors.grey[800]),
+            Icon(Icons.bedtime, size: 40, color: Colors.grey[800]),
           ],
         ),
       ],
@@ -349,7 +592,7 @@ class _SleepingState extends State<Sleeping> {
     return Column(
       children: [
         Text(
-          _formatDuration(_remainingDuration),
+          _displayTimerText(),
           style: TextStyle(
             fontSize: 52,
             fontWeight: FontWeight.bold,
@@ -363,13 +606,20 @@ class _SleepingState extends State<Sleeping> {
             ],
           ),
         ),
-        const SizedBox(height: 30),
+        const SizedBox(height: 6),
+        Text(
+          "Elapsed: ${_formatMMSS(_elapsedNow())}",
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 24),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              decoration:
-                  const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
               child: IconButton(
                 icon: const Icon(Icons.refresh, color: Colors.black54),
                 iconSize: 30,
@@ -378,8 +628,7 @@ class _SleepingState extends State<Sleeping> {
             ),
             const SizedBox(width: 40),
             Container(
-              decoration:
-                  const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
               child: IconButton(
                 icon: Icon(
                   _isRunning ? Icons.pause : Icons.play_arrow,
@@ -421,22 +670,41 @@ class _SleepingState extends State<Sleeping> {
     );
   }
 
-  Widget _buildDoneButton() {
-    return ElevatedButton(
-      onPressed: () {
-        _stopTimer(reset: true);
-        if (Navigator.canPop(context)) Navigator.pop(context);
-      },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
-        elevation: 5,
-      ),
-      child: const Text(
-        'DONE',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
+  Widget _buildButtonsRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _canDone ? _onDonePressed : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+              elevation: 5,
+            ),
+            child: const Text(
+              'DONE',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _canExit ? () => Navigator.of(context).pop(true) : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(40)),
+              elevation: 5,
+            ),
+            child: const Text(
+              'Exit',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
