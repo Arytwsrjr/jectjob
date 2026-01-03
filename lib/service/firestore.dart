@@ -22,7 +22,8 @@ class FirestoreService {
   // Event Methods
   // =========================
 
-  Future<void> addEvent(DateTime date, Event event, {bool addToTodo = true}) async {
+  Future<void> addEvent(DateTime date, Event event,
+      {bool addToTodo = true}) async {
     final uid = _currentUid;
     if (uid == null) throw Exception("User is not signed in.");
 
@@ -70,11 +71,8 @@ class FirestoreService {
     });
 
     if (addToTodo) {
-      final todoRef = _db
-          .collection('users')
-          .doc(uid)
-          .collection('todos')
-          .doc(eventId);
+      final todoRef =
+          _db.collection('users').doc(uid).collection('todos').doc(eventId);
 
       // ✅ เปลี่ยนให้น้อยที่สุด:
       // - เก็บ type เป็น subject/personal/other (เอามาจาก event)
@@ -197,11 +195,8 @@ class FirestoreService {
     batch.update(eventRef, eventUpdate);
 
     if (todoId != null && todoId.isNotEmpty) {
-      final todoRef = _db
-          .collection('users')
-          .doc(uid)
-          .collection('todos')
-          .doc(todoId);
+      final todoRef =
+          _db.collection('users').doc(uid).collection('todos').doc(todoId);
 
       batch.update(todoRef, {
         'title': title,
@@ -350,7 +345,7 @@ class FirestoreService {
       // ถ้าไม่มี eventDateTs แต่มี eventDateId -> ใช้ eventDateId
       final eventDateId = (data['eventDateId'] as String?)?.trim();
       final dateId = deletedEventDay != null
-          ? _getDateId(deletedEventDay)//!
+          ? _getDateId(deletedEventDay) //!
           : (eventDateId?.isNotEmpty == true ? eventDateId! : null);
 
       if (dateId != null) {
@@ -402,5 +397,57 @@ class FirestoreService {
 
       return days;
     });
+  }
+
+  Stream<List<String>> getSubjectsFromEvents() {
+    final uid = _currentUid;
+    if (uid == null) return Stream.value([]);
+
+    return _db
+        .collectionGroup('daily_events')
+        .where('uid', isEqualTo: uid)
+        .where('type', isEqualTo: 'subject')
+        .snapshots()
+        .map((snap) {
+      final set = <String>{};
+      for (final doc in snap.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final title = (data['title'] ?? '').toString().trim();
+        if (title.isNotEmpty) set.add(title);
+      }
+      final list = set.toList()..sort();
+      return list;
+    });
+  }
+
+  Future<List<DateTime>> getDeadlinesForSubjectFromTodos(String subject) async {
+    final uid = _currentUid;
+    if (uid == null) return [];
+
+    final now = DateTime.now();
+
+    final snap = await _db
+        .collection('users')
+        .doc(uid)
+        .collection('todos')
+        .where('type', isEqualTo: 'subject')
+        .get();
+
+    final deadlines = <DateTime>[];
+
+    for (final doc in snap.docs) {
+      final data = doc.data();
+      final title = (data['title'] ?? '').toString().trim();
+      final kind = (data['kind'] ?? '').toString();
+
+      if (kind == 'event' && title == subject) {
+        final ts = data['deadline'] as Timestamp?;
+        final d = ts?.toDate();
+        if (d != null && !d.isBefore(now)) deadlines.add(d);
+      }
+    }
+
+    deadlines.sort();
+    return deadlines;
   }
 }

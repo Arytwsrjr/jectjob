@@ -6,6 +6,7 @@ import 'package:planner/planner_app/screen/focus.dart';
 import 'package:planner/planner_app/screen/timetable.dart';
 import 'package:planner/planner_app/screen/sum.dart';
 import 'package:planner/planner_app/screen/todolist.dart';
+import 'package:planner/planner_app/screen/ai_planner.dart';
 import 'package:planner/service/firestore.dart';
 import 'package:table_calendar/table_calendar.dart';
 
@@ -31,7 +32,7 @@ class _MyHomePageState extends State<MyHomePage> {
         const Todolist(),
         const Center(child: Text('Sleep Time Page')),
         const FocusPage(),
-        const Center(child: Text('AI Planner Page')),
+        const AiPlannerPage(),
       ];
 
   CalendarFormat _calendarFormat = CalendarFormat.month;
